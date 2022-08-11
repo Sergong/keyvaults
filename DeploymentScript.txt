@@ -1,0 +1,37 @@
+
+Create Resources Using the following template:
+https://raw.githubusercontent.com/Azure-Samples/KeyVault-Rotation-SQLPassword-Csharp/main/ARM-Templates/Initial-Setup/azuredeploy.json
+
+
+
+AZCLI command:
+az resource list -o table -g akvrotationsm
+
+Create more resources using the following template:
+https://raw.githubusercontent.com/Azure-Samples/KeyVault-Rotation-SQLPassword-Csharp/main/ARM-Templates/Function/azuredeploy.json
+
+AZCLI command to check current resources in resource group:
+az resource list -o table -g akvrotationsm
+
+Set your access policy to grant 'manage secrets' permission to users:
+az keyvault set-policy --upn serge.meeuwsen@ultima.com --name akvrotationsm-kv --secret-permissions set delete get list
+
+Create a new secret with tags that contain the SQL Server resource ID, the SQL Server login name, and validity period for the secret in days. 
+Provide name of the secret, initial password from SQL database (in our example "Simple123") and include an expiration date that's set for tomorrow.
+
+Use a PowerShell terminal for this!
+$tomorrowDate = (get-date).AddDays(+1).ToString("yyy-MM-ddThh:mm:ssZ")
+az keyvault secret set --name sqlPassword --vault-name akvrotationsm-kv --value "Simple123" --tags "CredentialId=sqlAdmin" "ProviderAddress=Microsoft.Sql/servers/databases/akvrotationsm-sql/master" "ValidityPeriodDays=90" --expires $tomorrowDate
+az keyvault secret set --name sqlPassword --vault-name akvrotationsm-kv --value "Simple123" --tags "CredentialId=sqlAdmin" "ProviderAddress=Microsoft.Sql/servers/databases/akvrotationsm-sql2/master" "ValidityPeriodDays=90" --expires $tomorrowDate
+
+To verify the SQL credentials, create a web app. This web app will get the secret from Key Vault, extract SQL database information and credentials from the secret, and test the connection to SQL Server.
+
+The following JSON Template creates:
+	• A web app with system-managed identity
+	• An access policy to access secrets in Key Vault via web app managed identity
+
+https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2FKeyVault-Rotation-SQLPassword-Csharp-WebApp%2Fmain%2FARM-Templates%2FWeb-App%2Fazuredeploy.json
+
+Go to the deployed application URL:
+'https://akvrotationsm-app.azurewebsites.net/'
+
